@@ -1,39 +1,62 @@
 import MeetupDetail from "../../components/meetups/MeetupDetail";
+import { MongoClient, ObjectId } from "mongodb";
 
-const MeetupDetails = () => {
+const MeetupDetails = (props) => {
   return (
     <MeetupDetail
-      image="https://media.istockphoto.com/id/175259322/photo/front-view-of-a-traditional-american-home-with-wrapped-porch.jpg?s=2048x2048&w=is&k=20&c=WhsCear8oOH3kt8BGoQban6yQj3l9J8Cyz1u234wV-c="
-      title="this is first meet up"
-      address="ahmedabad"
-      descreption="this is my first meet up"
+      image={props.meetupData.image}
+      title={props.meetupData.title}
+      address={props.meetupData.address}
+      descreption={props.meetupData.descreption}
     />
   );
 };
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const client = await MongoClient.connect(
+    "mongodb+srv://ashishnandvana123:03lov8KAEuiuE9E3@cluster0.kj8xmni.mongodb.net/meetups?retryWrites=true&w=majority"
+  );
+
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+
+  const meetups = await meetupsCollection.find({}, { _id: 1 }).toArray();
+
+  client.close();
+
   return {
     fallback: false,
-    paths: [
-      { params: { meetupId: "m1" } },
-      { params: { meetupId: "m2" } },
-      { params: { meetupId: "m3" } },
-    ],
+    paths: meetups.map((meetup) => ({
+      params: { meetupId: meetup._id.toString() },
+    })),
   };
 }
 
-export function getStaticProps(context) {
+export async function getStaticProps(context) {
   const meetupId = context.params.meetupId;
+
+  const client = await MongoClient.connect(
+    "mongodb+srv://ashishnandvana123:03lov8KAEuiuE9E3@cluster0.kj8xmni.mongodb.net/meetups?retryWrites=true&w=majority"
+  );
+
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+
+  const selectedMeetup = await meetupsCollection.findOne({
+    _id: new ObjectId(meetupId),
+  });
+
+  const meetupData = {
+    ...selectedMeetup,
+    _id: selectedMeetup._id.toString(),
+  };
+
+  client.close();
   return {
     props: {
-      meetups: {
-        image:
-          "https://media.istockphoto.com/id/175259322/photo/front-view-of-a-traditional-american-home-with-wrapped-porch.jpg?s=2048x2048&w=is&k=20&c=WhsCear8oOH3kt8BGoQban6yQj3l9J8Cyz1u234wV-c=",
-        id: meetupId,
-        title: "this is first meet up",
-        address: "ahmedabad",
-        descreption: "this is my first meet up",
-      },
+      meetupData,
     },
   };
 }
